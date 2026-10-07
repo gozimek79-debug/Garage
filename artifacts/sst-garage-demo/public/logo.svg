@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="SST Garage">
+  <rect width="64" height="64" rx="15" fill="#e6633d"/>
+  <path d="M38 13a17 17 0 0 0-20 22l-8 8a5 5 0 0 0 7 7l8-8a17 17 0 0 0 22-20l-9 9-9-2-2-9z" fill="none" stroke="#fff9ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="79" y="31" fill="#20313d" font-family="Space Grotesk,Arial,sans-serif" font-size="24" font-weight="700" letter-spacing="-1.2">SST GARAGE</text>
+  <text x="80" y="48" fill="#66757a" font-family="DM Mono,monospace" font-size="8" letter-spacing="2.1">WERKPLAATS PLATFORM</text>
+</svg>

@@ -1,8 +1,16 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import { clerkMiddleware } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+} from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { apiErrorHandler } from "./lib/http";
 
 const app: Express = express();
 
@@ -25,10 +33,28 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(
+  clerkMiddleware((req) => {
+    const host = getClerkProxyHost(req) ?? "";
+    const forwardedProto = req.headers["x-forwarded-proto"];
+    const protocol = Array.isArray(forwardedProto)
+      ? forwardedProto[0]
+      : forwardedProto;
+    return {
+      publishableKey: publishableKeyFromHost(
+        host,
+        process.env.CLERK_PUBLISHABLE_KEY,
+      ),
+      proxyUrl: `${protocol || "https"}://${host}${CLERK_PROXY_PATH}`,
+    };
+  }),
+);
 
 app.use("/api", router);
+app.use(apiErrorHandler);
 
 export default app;

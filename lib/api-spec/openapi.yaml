@@ -3,20 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Tenant-safe capabilities for the SST garage demo.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: demo
+  - name: workshop
+  - name: customers
+  - name: vehicles
+  - name: inventory
+  - name: commerce
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,571 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /demo/session:
+    get:
+      operationId: getDemoSession
+      tags: [demo]
+      summary: Get the signed-in user's garage context and role
+      responses:
+        "200":
+          description: Current demo session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoSession"
+  /demo/role:
+    post:
+      operationId: switchDemoRole
+      tags: [demo]
+      summary: Switch the demo role when demo tools are enabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoRoleInput"
+      responses:
+        "200":
+          description: Updated demo session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoSession"
+  /demo/reset:
+    post:
+      operationId: resetDemo
+      tags: [demo]
+      summary: Restore the seeded demonstration data
+      responses:
+        "200":
+          description: Reset complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResetResult"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [demo]
+      summary: Get workshop dashboard metrics and today's schedule
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List tenant customers
+      responses:
+        "200":
+          description: Customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+  /vehicles:
+    get:
+      operationId: listVehicles
+      tags: [vehicles]
+      summary: List tenant vehicles
+      responses:
+        "200":
+          description: Vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+  /vehicles/lookup:
+    get:
+      operationId: lookupVehicle
+      tags: [vehicles]
+      summary: Look up a Dutch registration using the clearly labelled mock provider
+      parameters:
+        - name: registration
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vehicle lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleLookup"
+  /services:
+    get:
+      operationId: listServices
+      tags: [workshop]
+      summary: List tenant service offerings and demo prices
+      responses:
+        "200":
+          description: Services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [workshop]
+      summary: List workshop bookings
+      responses:
+        "200":
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [workshop]
+      summary: Create a service booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingInput"
+      responses:
+        "201":
+          description: Created booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+  /bookings/{bookingId}/receive:
+    post:
+      operationId: receiveBooking
+      tags: [workshop]
+      summary: Record vehicle reception and open a work order
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleReceptionInput"
+      responses:
+        "201":
+          description: Created work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+  /work-orders:
+    get:
+      operationId: listWorkOrders
+      tags: [workshop]
+      summary: List work orders
+      responses:
+        "200":
+          description: Work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+  /work-orders/{workOrderId}:
+    get:
+      operationId: getWorkOrder
+      tags: [workshop]
+      summary: Get a work order with its commercial estimate
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    patch:
+      operationId: updateWorkOrder
+      tags: [workshop]
+      summary: Update diagnosis, mechanic, work performed, or lifecycle status
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderUpdate"
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+  /work-orders/{workOrderId}/estimate:
+    post:
+      operationId: createEstimate
+      tags: [workshop]
+      summary: Generate an estimate from the work order's diagnosis and parts
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+  /estimates/{estimateId}/decision:
+    post:
+      operationId: decideEstimate
+      tags: [workshop]
+      summary: Record a customer's estimate decision and audit event
+      parameters:
+        - name: estimateId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstimateDecisionInput"
+      responses:
+        "200":
+          description: Updated estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Estimate"
+  /work-orders/{workOrderId}/complete:
+    post:
+      operationId: completeWorkOrder
+      tags: [workshop]
+      summary: Complete repair, issue demo invoice, and append technical service history
+      parameters:
+        - name: workOrderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Completed work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompletionResult"
+  /vehicles/{vehicleId}/passport:
+    get:
+      operationId: getServicePassport
+      tags: [vehicles]
+      summary: Get portable technical history without commercial pricing
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Technical service history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortableServiceRecord"
+  /vehicles/{vehicleId}/sharing:
+    post:
+      operationId: grantServiceHistoryAccess
+      tags: [vehicles]
+      summary: Grant a fictional receiving garage access to technical history
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HistoryGrantInput"
+      responses:
+        "201":
+          description: Access grant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryGrant"
+  /sharing/{grantId}:
+    delete:
+      operationId: revokeServiceHistoryAccess
+      tags: [vehicles]
+      summary: Revoke a vehicle history grant
+      parameters:
+        - name: grantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Grant revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryGrant"
+  /sharing/{grantId}/records:
+    get:
+      operationId: getSharedServiceHistory
+      tags: [vehicles]
+      summary: Read only portable technical records shared with the receiving garage
+      parameters:
+        - name: grantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shared technical history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortableServiceRecord"
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: List tenant parts and stock levels
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Add a stocked item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryInput"
+      responses:
+        "201":
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+  /used-vehicles:
+    get:
+      operationId: listUsedVehicles
+      tags: [commerce]
+      summary: List used vehicle listings
+      responses:
+        "200":
+          description: Listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsedVehicle"
+    post:
+      operationId: createUsedVehicle
+      tags: [commerce]
+      summary: Publish a used vehicle listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsedVehicleInput"
+      responses:
+        "201":
+          description: Listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsedVehicle"
+  /used-vehicles/{usedVehicleId}:
+    patch:
+      operationId: updateUsedVehicle
+      tags: [commerce]
+      summary: Update a used vehicle listing
+      parameters:
+        - name: usedVehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsedVehicleUpdate"
+      responses:
+        "200":
+          description: Updated listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsedVehicle"
+  /used-vehicles/{usedVehicleId}/leads:
+    post:
+      operationId: createUsedVehicleLead
+      tags: [commerce]
+      summary: Request a test drive or vehicle enquiry
+      parameters:
+        - name: usedVehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadInput"
+      responses:
+        "201":
+          description: Lead created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+  /shop/products:
+    get:
+      operationId: listShopProducts
+      tags: [commerce]
+      summary: List demo shop products
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopProduct"
+  /shop/demo-checkout:
+    post:
+      operationId: demoCheckout
+      tags: [commerce]
+      summary: Demonstrate checkout without processing a real payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutInput"
+      responses:
+        "200":
+          description: Clearly marked demo checkout result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResult"
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [commerce]
+      summary: List commercial invoices for the current garage
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [demo]
+      summary: List demo notifications
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+  /integration/overview:
+    get:
+      operationId: getIntegrationOverview
+      tags: [demo]
+      summary: Get public-safe demo website widget information
+      responses:
+        "200":
+          description: Widget integration overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationOverview"
 components:
   schemas:
     HealthStatus:
@@ -31,6 +600,475 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
-
+      required: [status]
+    Role:
+      type: string
+      enum: [owner, manager, reception, mechanic, sales, warehouse, customer]
+    WorkOrderStatus:
+      type: string
+      enum: [requested, confirmed, vehicle_received, diagnosis, waiting_approval, approved, in_repair, ready, completed, cancelled]
+    DemoSession:
+      type: object
+      required: [userId, userName, organizationId, organizationName, locationId, role, demoToolsEnabled]
+      properties:
+        userId: { type: string }
+        userName: { type: string }
+        organizationId: { type: string }
+        organizationName: { type: string }
+        locationId: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        demoToolsEnabled: { type: boolean }
+    DemoRoleInput:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+    ResetResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+    Dashboard:
+      type: object
+      required: [date, appointments, vehiclesInWorkshop, waitingApproval, readyForCollection, openEstimates, newLeads, todayRevenue, monthRevenue, workshopUtilization, unpaidInvoices, lowStockParts, schedule]
+      properties:
+        date: { type: string }
+        appointments: { type: integer }
+        vehiclesInWorkshop: { type: integer }
+        waitingApproval: { type: integer }
+        readyForCollection: { type: integer }
+        openEstimates: { type: integer }
+        newLeads: { type: integer }
+        todayRevenue: { type: number }
+        monthRevenue: { type: number }
+        workshopUtilization: { type: number }
+        unpaidInvoices: { type: number }
+        lowStockParts: { type: integer }
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/Booking"
+    Customer:
+      type: object
+      required: [id, organizationId, locationId, name, email, phone, preferredLanguage, notes, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        preferredLanguage: { type: string, enum: [nl, en] }
+        address: { type: ["string", "null"] }
+        notes: { type: string }
+        vehicleCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    CustomerInput:
+      type: object
+      required: [name, email, phone, preferredLanguage]
+      properties:
+        name: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        phone: { type: string, minLength: 5 }
+        preferredLanguage: { type: string, enum: [nl, en] }
+        address: { type: string }
+        notes: { type: string }
+    Vehicle:
+      type: object
+      required: [id, organizationId, locationId, customerId, customerName, registrationNumber, make, model, year, mileage, fuelType, apkExpiry]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        customerId: { type: string }
+        customerName: { type: string }
+        registrationNumber: { type: string }
+        vin: { type: ["string", "null"] }
+        make: { type: string }
+        model: { type: string }
+        variant: { type: string }
+        fuelType: { type: string }
+        year: { type: integer }
+        mileage: { type: integer }
+        apkExpiry: { type: string }
+    VehicleLookup:
+      type: object
+      required: [demo, vehicle]
+      properties:
+        demo: { type: boolean }
+        vehicle:
+          $ref: "#/components/schemas/VehicleLookupDetails"
+    VehicleLookupDetails:
+      type: object
+      required: [registrationNumber, make, model, year, fuelType]
+      properties:
+        registrationNumber: { type: string }
+        make: { type: string }
+        model: { type: string }
+        variant: { type: string }
+        year: { type: integer }
+        fuelType: { type: string }
+    Service:
+      type: object
+      required: [id, name, description, estimatedDurationMinutes, basePrice, requiredResourceType]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        estimatedDurationMinutes: { type: integer }
+        basePrice: { type: number }
+        requiredResourceType: { type: string }
+    Booking:
+      type: object
+      required: [id, organizationId, locationId, customerId, customerName, vehicleId, registrationNumber, vehicleLabel, serviceId, serviceName, startsAt, status, source]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        customerId: { type: string }
+        customerName: { type: string }
+        vehicleId: { type: string }
+        registrationNumber: { type: string }
+        vehicleLabel: { type: string }
+        serviceId: { type: string }
+        serviceName: { type: string }
+        startsAt: { type: string }
+        durationMinutes: { type: integer }
+        status: { type: string, enum: [requested, confirmed, vehicle_received, cancelled] }
+        source: { type: string, enum: [website, phone, widget] }
+        problemDescription: { type: ["string", "null"] }
+        assignedMechanic: { type: ["string", "null"] }
+        resource: { type: ["string", "null"] }
+        createdAt: { type: string }
+    BookingInput:
+      type: object
+      required: [registrationNumber, serviceId, startsAt, customerName, email, phone]
+      properties:
+        registrationNumber: { type: string, minLength: 5 }
+        serviceId: { type: string }
+        startsAt: { type: string, format: date-time }
+        customerName: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        phone: { type: string, minLength: 5 }
+        preferredLanguage: { type: string, enum: [nl, en] }
+        problemDescription: { type: string }
+        source: { type: string, enum: [website, phone, widget] }
+    VehicleReceptionInput:
+      type: object
+      required: [mileage, customerComplaint]
+      properties:
+        mileage: { type: integer, minimum: 0 }
+        fuelLevel: { type: ["integer", "null"], minimum: 0, maximum: 100 }
+        visibleDamageNotes: { type: string }
+        customerComplaint: { type: string, minLength: 2 }
+        additionalNotes: { type: string }
+    WorkOrder:
+      type: object
+      required: [id, organizationId, locationId, bookingId, customerId, customerName, vehicleId, vehicleLabel, registrationNumber, status, complaint, diagnosis, assignedMechanic, mileage, items, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        bookingId: { type: string }
+        customerId: { type: string }
+        customerName: { type: string }
+        vehicleId: { type: string }
+        vehicleLabel: { type: string }
+        registrationNumber: { type: string }
+        status: { $ref: "#/components/schemas/WorkOrderStatus" }
+        complaint: { type: string }
+        diagnosis: { type: string }
+        assignedMechanic: { type: string }
+        mileage: { type: integer }
+        fuelLevel: { type: ["integer", "null"] }
+        visibleDamageNotes: { type: string }
+        additionalNotes: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/WorkOrderItem" }
+        estimate: { oneOf: [{ $ref: "#/components/schemas/Estimate" }, { type: "null" }] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    WorkOrderItem:
+      type: object
+      required: [id, kind, description, quantity, unitPrice, vatRate, total]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [labor, part] }
+        description: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        vatRate: { type: number }
+        total: { type: number }
+        inventoryItemId: { type: ["string", "null"] }
+    WorkOrderUpdate:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/WorkOrderStatus" }
+        diagnosis: { type: string }
+        assignedMechanic: { type: string }
+        workPerformed: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/WorkOrderItemInput" }
+    WorkOrderItemInput:
+      type: object
+      required: [kind, description, quantity, unitPrice, vatRate]
+      properties:
+        kind: { type: string, enum: [labor, part] }
+        description: { type: string, minLength: 1 }
+        quantity: { type: number, exclusiveMinimum: 0 }
+        unitPrice: { type: number, minimum: 0 }
+        vatRate: { type: number, minimum: 0, maximum: 100 }
+        inventoryItemId: { type: ["string", "null"] }
+    Estimate:
+      type: object
+      required: [id, workOrderId, status, decision, lines, subtotal, vatTotal, total, decisionTimestamp]
+      properties:
+        id: { type: string }
+        workOrderId: { type: string }
+        status: { type: string, enum: [draft, sent, approved, declined, contact_requested] }
+        decision: { type: ["string", "null"], enum: [approve, decline, contact, null] }
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/EstimateLine" }
+        subtotal: { type: number }
+        vatTotal: { type: number }
+        total: { type: number }
+        decisionTimestamp: { type: ["string", "null"] }
+    EstimateLine:
+      type: object
+      required: [description, quantity, unitPrice, vatRate, total]
+      properties:
+        description: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        vatRate: { type: number }
+        total: { type: number }
+    EstimateDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve, decline, contact] }
+        customerMessage: { type: string }
+    CompletionResult:
+      type: object
+      required: [workOrder, invoice, serviceRecord]
+      properties:
+        workOrder: { $ref: "#/components/schemas/WorkOrder" }
+        invoice: { $ref: "#/components/schemas/Invoice" }
+        serviceRecord: { $ref: "#/components/schemas/PortableServiceRecord" }
+    PortableServiceRecord:
+      type: object
+      required: [id, organizationId, locationId, vehicleId, serviceDate, mileage, serviceType, workPerformed, partsInstalled, technicalResult, serviceGarage, verificationStatus]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        vehicleId: { type: string }
+        serviceDate: { type: string }
+        mileage: { type: integer }
+        serviceType: { type: string }
+        workPerformed: { type: string }
+        partsInstalled:
+          type: array
+          items: { type: string }
+        partManufacturer: { type: string }
+        partNumber: { type: string }
+        fluids: { type: string }
+        technicalResult: { type: string }
+        serviceGarage: { type: string }
+        verificationStatus: { type: string, enum: [verified, historical] }
+    HistoryGrantInput:
+      type: object
+      required: [scope]
+      properties:
+        scope: { type: string, enum: [one_time, 30_days, until_revoked] }
+    HistoryGrant:
+      type: object
+      required: [id, vehicleId, receivingOrganizationId, receivingGarage, scope, createdAt, expiresAt, revokedAt]
+      properties:
+        id: { type: string }
+        vehicleId: { type: string }
+        receivingOrganizationId: { type: string }
+        receivingGarage: { type: string }
+        scope: { type: string, enum: [one_time, 30_days, until_revoked] }
+        createdAt: { type: string }
+        expiresAt: { type: ["string", "null"] }
+        revokedAt: { type: ["string", "null"] }
+    InventoryItem:
+      type: object
+      required: [id, organizationId, locationId, sku, partNumber, name, brand, purchasePrice, salePrice, vatRate, stock, minimumStock, storageLocation]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        sku: { type: string }
+        partNumber: { type: string }
+        name: { type: string }
+        brand: { type: string }
+        purchasePrice: { type: number }
+        salePrice: { type: number }
+        vatRate: { type: number }
+        stock: { type: integer }
+        minimumStock: { type: integer }
+        storageLocation: { type: string }
+    InventoryInput:
+      type: object
+      required: [sku, partNumber, name, brand, purchasePrice, salePrice, vatRate, stock, minimumStock, storageLocation]
+      properties:
+        sku: { type: string, minLength: 1 }
+        partNumber: { type: string }
+        name: { type: string, minLength: 1 }
+        brand: { type: string }
+        purchasePrice: { type: number, minimum: 0 }
+        salePrice: { type: number, minimum: 0 }
+        vatRate: { type: number, minimum: 0, maximum: 100 }
+        stock: { type: integer, minimum: 0 }
+        minimumStock: { type: integer, minimum: 0 }
+        storageLocation: { type: string }
+    UsedVehicle:
+      type: object
+      required: [id, organizationId, locationId, registration, make, model, year, mileage, fuel, transmission, price, description, features, apk, serviceHistoryAvailable, status]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        registration: { type: string }
+        make: { type: string }
+        model: { type: string }
+        variant: { type: string }
+        year: { type: integer }
+        mileage: { type: integer }
+        fuel: { type: string }
+        transmission: { type: string }
+        price: { type: number }
+        description: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        imageUrl: { type: string }
+        apk: { type: string }
+        serviceHistoryAvailable: { type: boolean }
+        status: { type: string, enum: [draft, published, reserved, sold] }
+    UsedVehicleInput:
+      type: object
+      required: [registration, make, model, year, mileage, fuel, transmission, price, description]
+      properties:
+        registration: { type: string }
+        make: { type: string }
+        model: { type: string }
+        variant: { type: string }
+        year: { type: integer }
+        mileage: { type: integer }
+        fuel: { type: string }
+        transmission: { type: string }
+        price: { type: number }
+        description: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        apk: { type: string }
+        serviceHistoryAvailable: { type: boolean }
+        status: { type: string, enum: [draft, published] }
+    UsedVehicleUpdate:
+      type: object
+      properties:
+        price: { type: number, minimum: 0 }
+        description: { type: string }
+        status: { type: string, enum: [draft, published, reserved, sold] }
+        serviceHistoryAvailable: { type: boolean }
+    LeadInput:
+      type: object
+      required: [name, email, phone, type]
+      properties:
+        name: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        type: { type: string, enum: [test_drive, contact, trade_in] }
+        message: { type: string }
+    Lead:
+      type: object
+      required: [id, usedVehicleId, name, type, createdAt]
+      properties:
+        id: { type: string }
+        usedVehicleId: { type: string }
+        name: { type: string }
+        type: { type: string }
+        createdAt: { type: string }
+    ShopProduct:
+      type: object
+      required: [id, name, category, brand, price, stock, description]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string }
+        brand: { type: string }
+        price: { type: number }
+        stock: { type: integer }
+        description: { type: string }
+        imageUrl: { type: string }
+    CheckoutInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId: { type: string }
+              quantity: { type: integer, minimum: 1 }
+    CheckoutResult:
+      type: object
+      required: [demo, orderNumber, total, message]
+      properties:
+        demo: { type: boolean }
+        orderNumber: { type: string }
+        total: { type: number }
+        message: { type: string }
+    Invoice:
+      type: object
+      required: [id, organizationId, locationId, invoiceNumber, customerName, date, total, vatTotal, paymentStatus, lines]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        locationId: { type: string }
+        invoiceNumber: { type: string }
+        customerName: { type: string }
+        date: { type: string }
+        total: { type: number }
+        vatTotal: { type: number }
+        paymentStatus: { type: string, enum: [paid, unpaid, overdue] }
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/EstimateLine" }
+    Notification:
+      type: object
+      required: [id, title, message, type, createdAt, read]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        message: { type: string }
+        type: { type: string, enum: [booking, estimate, vehicle, service, reminder, demo] }
+        createdAt: { type: string }
+        read: { type: boolean }
+    IntegrationOverview:
+      type: object
+      required: [garageName, widgets]
+      properties:
+        garageName: { type: string }
+        widgets:
+          type: array
+          items:
+            type: object
+            required: [id, name, description, demo]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              description: { type: string }
+              demo: { type: boolean }

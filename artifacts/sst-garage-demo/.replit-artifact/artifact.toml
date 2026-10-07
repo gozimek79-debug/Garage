@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "SST Garage Platform Demo"
+description = "An interactive garage management platform demo for Dutch automotive workshops, covering bookings, workshop operations, customer approvals, vehicle service history, inventory and used-car sales."
+version = "1.0.0"
+id = "artifacts/sst-garage-demo"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19075
+
+[services.development]
+run = "pnpm --filter @workspace/sst-garage-demo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sst-garage-demo", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/sst-garage-demo/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19075"
+BASE_PATH = "/"
