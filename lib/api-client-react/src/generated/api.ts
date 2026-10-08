@@ -1691,6 +1691,83 @@ export function useGetServicePassport<TData = Awaited<ReturnType<typeof getServi
 
 
 
+export const getListServiceHistoryGrantsUrl = (vehicleId: string,) => {
+
+
+
+
+  return `/api/vehicles/${vehicleId}/sharing`
+}
+
+/**
+ * @summary List the customer-owned access grants for a vehicle
+ */
+export const listServiceHistoryGrants = async (vehicleId: string, options?: Parameters<typeof customFetch>[1]): Promise<HistoryGrant[]> => {
+
+  return customFetch<HistoryGrant[]>(getListServiceHistoryGrantsUrl(vehicleId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListServiceHistoryGrantsQueryKey = (vehicleId: string,) => {
+    return [
+    `/api/vehicles/${vehicleId}/sharing`
+    ] as const;
+    }
+
+
+export const getListServiceHistoryGrantsQueryOptions = <TData = Awaited<ReturnType<typeof listServiceHistoryGrants>>, TError = ErrorType<unknown>>(vehicleId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listServiceHistoryGrants>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListServiceHistoryGrantsQueryKey(vehicleId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listServiceHistoryGrants>>> = ({ signal }) => listServiceHistoryGrants(vehicleId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: vehicleId !== null && vehicleId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listServiceHistoryGrants>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListServiceHistoryGrantsQueryResult = NonNullable<Awaited<ReturnType<typeof listServiceHistoryGrants>>>
+export type ListServiceHistoryGrantsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the customer-owned access grants for a vehicle
+ */
+
+export function useListServiceHistoryGrants<TData = Awaited<ReturnType<typeof listServiceHistoryGrants>>, TError = ErrorType<unknown>>(
+ vehicleId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listServiceHistoryGrants>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListServiceHistoryGrantsQueryOptions(vehicleId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGrantServiceHistoryAccessUrl = (vehicleId: string,) => {
 
 

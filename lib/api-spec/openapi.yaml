@@ -350,6 +350,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/PortableServiceRecord"
   /vehicles/{vehicleId}/sharing:
+    get:
+      operationId: listServiceHistoryGrants
+      tags: [vehicles]
+      summary: List the customer-owned access grants for a vehicle
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Access grants for the vehicle
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryGrant"
     post:
       operationId: grantServiceHistoryAccess
       tags: [vehicles]
@@ -829,7 +848,7 @@ components:
       properties:
         id: { type: string }
         workOrderId: { type: string }
-        status: { type: string, enum: [draft, sent, approved, declined, contact_requested] }
+        status: { type: string, enum: [draft, sent, approved, declined, contact_requested, superseded] }
         decision: { type: ["string", "null"], enum: [approve, decline, contact, null] }
         lines:
           type: array

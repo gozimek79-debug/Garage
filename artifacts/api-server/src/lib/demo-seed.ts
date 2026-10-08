@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   auditEventsTable,
@@ -86,7 +86,7 @@ const locations = [
       friday: "08:00–17:30",
       saturday: "09:00–13:00",
       sunday: "closed",
-    },
+    } as Record<string, string>,
     isMain: true,
   },
   {
@@ -99,7 +99,7 @@ const locations = [
     phone: "+31 33 555 0184",
     email: "werkplaats@noordmotorhuis.example",
     domain: "noordmotorhuis.example",
-    openingHours: { weekdays: "08:00–17:00", saturday: "09:00–12:00" },
+    openingHours: { weekdays: "08:00–17:00", saturday: "09:00–12:00" } as Record<string, string>,
     isMain: true,
   },
 ];
@@ -223,7 +223,13 @@ const bookingRows = Array.from({ length: 20 }, (_, index) => {
     serviceId: serviceRows[serviceIndex]![0] as string,
     startsAt: setTime(times![0]!, times![1]!, times![2]!),
     durationMinutes: Number(serviceRows[serviceIndex]![3]),
-    status: index === 3 ? "vehicle_received" : index === 12 ? "cancelled" : "confirmed",
+    status: index === 3
+      ? "vehicle_received"
+      : index === 10
+        ? "completed"
+        : index === 12
+          ? "cancelled"
+          : "confirmed",
     source: index % 3 === 0 ? "website" : index % 3 === 1 ? "phone" : "widget",
     problemDescription: index === 0
       ? "Remmen maken een schurend geluid. Graag voor de vakantie controleren."
@@ -257,13 +263,96 @@ const moneyLine = (
   status: "active",
 });
 
+async function ensureDemoSeedAdditions(): Promise<void> {
+  await db.insert(workshopResourcesTable).values({
+    id: "resource-airco",
+    organizationId: DEMO_ORG_ID,
+    locationId: DEMO_LOCATION_ID,
+    name: "Airco-station",
+    type: "airco",
+    capacity: 1,
+    status: "active",
+  }).onConflictDoNothing();
+  const [createdHistoryWorkOrder] = await db.insert(workOrdersTable).values({
+    id: "wo-emma-history",
+    organizationId: DEMO_ORG_ID,
+    locationId: DEMO_LOCATION_ID,
+    bookingId: "booking-11",
+    customerId: EMMA_CUSTOMER_ID,
+    vehicleId: vehicles[12]!.id,
+    status: "completed",
+    complaint: "Periodiek onderhoud.",
+    diagnosis: "Voertuig gecontroleerd volgens onderhoudsschema.",
+    workPerformed: "Motorolie en oliefilter vervangen; verlichting en remmen gecontroleerd.",
+    assignedMechanic: "Ruben Bos",
+    mileage: vehicles[12]!.mileage - 3200,
+    fuelLevel: 57,
+    visibleDamageNotes: "",
+    additionalNotes: "",
+  }).onConflictDoNothing().returning({ id: workOrdersTable.id });
+  if (!createdHistoryWorkOrder) {
+    const [existingHistoryWorkOrder] = await db
+      .select({ id: workOrdersTable.id })
+      .from(workOrdersTable)
+      .where(and(
+        eq(workOrdersTable.id, "wo-emma-history"),
+        eq(workOrdersTable.organizationId, DEMO_ORG_ID),
+      ))
+      .limit(1);
+    if (!existingHistoryWorkOrder) return;
+  }
+  await db.insert(workOrderItemsTable).values([
+    moneyLine("item-emma-history-oil", "wo-emma-history", "Motorolie 5W-30", 1, 49.95, "part-oil-5w30"),
+    moneyLine("item-emma-history-filter", "wo-emma-history", "Oliefilter", 1, 12.95, "part-filter-oil"),
+    moneyLine("item-emma-history-labor", "wo-emma-history", "Periodiek onderhoud", 1, 95.00),
+  ]).onConflictDoNothing();
+  await db.insert(invoicesTable).values({
+    id: "invoice-1054",
+    organizationId: DEMO_ORG_ID,
+    locationId: DEMO_LOCATION_ID,
+    workOrderId: "wo-emma-history",
+    customerId: EMMA_CUSTOMER_ID,
+    invoiceNumber: "VD-2026-1054",
+    date: new Date(Date.now() - 28 * 86_400_000),
+    lines: [
+      { description: "Periodiek onderhoud", quantity: 1, unitPrice: 157.90, vatRate: 21, total: 157.90 },
+    ],
+    vatTotal: "27.42",
+    total: "157.90",
+    paymentStatus: "paid",
+    status: "issued",
+  }).onConflictDoNothing();
+  await db.insert(portableServiceRecordsTable).values({
+    id: "passport-emma-periodic",
+    organizationId: DEMO_ORG_ID,
+    locationId: DEMO_LOCATION_ID,
+    vehicleId: vehicles[12]!.id,
+    workOrderId: "wo-emma-history",
+    serviceDate: new Date(Date.now() - 28 * 86_400_000),
+    mileage: vehicles[12]!.mileage - 3200,
+    serviceType: "Periodiek onderhoud",
+    workPerformed: "Motorolie en oliefilter vervangen; verlichting en remmen gecontroleerd.",
+    partsInstalled: ["Motorolie 5W-30", "Oliefilter"],
+    partManufacturer: "Castrol · MANN-FILTER",
+    partNumber: "OL-530-5L · OF-0712",
+    fluids: "5W-30 motorolie",
+    technicalResult: "Voertuig technisch in orde; volgende onderhoudsbeurt volgens schema.",
+    serviceGarage: "Van Dijk Auto Service · Amsterdam-Noord",
+    verificationStatus: "verified",
+    status: "published",
+  }).onConflictDoNothing();
+}
+
 export async function seedDemoData(): Promise<void> {
   const [existing] = await db
     .select({ id: organizationsTable.id })
     .from(organizationsTable)
     .where(eq(organizationsTable.id, DEMO_ORG_ID))
     .limit(1);
-  if (existing) return;
+  if (existing) {
+    await ensureDemoSeedAdditions();
+    return;
+  }
 
   await db.insert(organizationsTable).values(organizations).onConflictDoNothing();
   await db.insert(locationsTable).values(locations).onConflictDoNothing();
@@ -331,6 +420,7 @@ export async function seedDemoData(): Promise<void> {
     ["resource-lift-2", "Brug 2", "lift"],
     ["resource-inspection", "APK-lijn", "inspection"],
     ["resource-diagnostic", "Diagnoseplek", "diagnostic"],
+      ["resource-airco", "Airco-station", "airco"],
   ].map(([id, name, type]) => ({
     id: id as string,
     organizationId: DEMO_ORG_ID,
@@ -417,6 +507,21 @@ export async function seedDemoData(): Promise<void> {
       visibleDamageNotes: "",
       additionalNotes: "Commerciële notitie staat apart en wordt niet gedeeld.",
     },
+    {
+      id: "wo-emma-history",
+      bookingId: "booking-11",
+      customerId: EMMA_CUSTOMER_ID,
+      vehicleId: vehicles[12]!.id,
+      status: "completed",
+      complaint: "Periodiek onderhoud.",
+      diagnosis: "Voertuig gecontroleerd volgens onderhoudsschema.",
+      workPerformed: "Motorolie en oliefilter vervangen; verlichting en remmen gecontroleerd.",
+      assignedMechanic: "Ruben Bos",
+      mileage: vehicles[12]!.mileage - 3200,
+      fuelLevel: 57,
+      visibleDamageNotes: "",
+      additionalNotes: "",
+    },
   ].map((workOrder) => ({
     ...workOrder,
     organizationId: DEMO_ORG_ID,
@@ -436,6 +541,9 @@ export async function seedDemoData(): Promise<void> {
     moneyLine("item-history-oil", "wo-completed-history", "Motorolie 5W-30", 1, 49.95, "part-oil-5w30"),
     moneyLine("item-history-filter", "wo-completed-history", "Oliefilter", 1, 12.95, "part-filter-oil"),
     moneyLine("item-history-labor", "wo-completed-history", "Kleine beurt", 1, 95.00),
+    moneyLine("item-emma-history-oil", "wo-emma-history", "Motorolie 5W-30", 1, 49.95, "part-oil-5w30"),
+    moneyLine("item-emma-history-filter", "wo-emma-history", "Oliefilter", 1, 12.95, "part-filter-oil"),
+    moneyLine("item-emma-history-labor", "wo-emma-history", "Periodiek onderhoud", 1, 95.00),
   ]).onConflictDoNothing();
 
   const brakeLines = [
@@ -508,6 +616,22 @@ export async function seedDemoData(): Promise<void> {
       paymentStatus: "unpaid",
       status: "issued",
     },
+    {
+      id: "invoice-1054",
+      organizationId: DEMO_ORG_ID,
+      locationId: DEMO_LOCATION_ID,
+      workOrderId: "wo-emma-history",
+      customerId: EMMA_CUSTOMER_ID,
+      invoiceNumber: "VD-2026-1054",
+      date: new Date(Date.now() - 28 * 86_400_000),
+      lines: [
+        { description: "Periodiek onderhoud", quantity: 1, unitPrice: 157.90, vatRate: 21, total: 157.90 },
+      ],
+      vatTotal: "27.42",
+      total: "157.90",
+      paymentStatus: "paid",
+      status: "issued",
+    },
   ]).onConflictDoNothing();
   await db.insert(garageCommercialRecordsTable).values({
     id: "commercial-completed-history",
@@ -536,6 +660,25 @@ export async function seedDemoData(): Promise<void> {
       fluids: "5W-30 motorolie",
       technicalResult: "Voertuig technisch in orde; geen vervolgwerk geadviseerd.",
       serviceGarage: "Van Dijk Auto Service · Utrecht",
+      verificationStatus: "verified",
+      status: "published",
+    },
+    {
+      id: "passport-emma-periodic",
+      organizationId: DEMO_ORG_ID,
+      locationId: DEMO_LOCATION_ID,
+      vehicleId: vehicles[12]!.id,
+      workOrderId: "wo-emma-history",
+      serviceDate: new Date(Date.now() - 28 * 86_400_000),
+      mileage: vehicles[12]!.mileage - 3200,
+      serviceType: "Periodiek onderhoud",
+      workPerformed: "Motorolie en oliefilter vervangen; verlichting en remmen gecontroleerd.",
+      partsInstalled: ["Motorolie 5W-30", "Oliefilter"],
+      partManufacturer: "Castrol · MANN-FILTER",
+      partNumber: "OL-530-5L · OF-0712",
+      fluids: "5W-30 motorolie",
+      technicalResult: "Voertuig technisch in orde; volgende onderhoudsbeurt volgens schema.",
+      serviceGarage: "Van Dijk Auto Service · Amsterdam-Noord",
       verificationStatus: "verified",
       status: "published",
     },

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run typecheck:libs && pnpm --filter @workspace/api-server run typecheck && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/sst-garage-demo run build",
+  "outputDirectory": "artifacts/sst-garage-demo/dist/public",
+  "functions": {
+    "api/[...path].ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

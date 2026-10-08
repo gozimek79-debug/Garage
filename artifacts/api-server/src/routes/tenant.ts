@@ -4,6 +4,7 @@ import {
   CreateCustomerBody,
   CreateCustomerResponse,
   GetDemoSessionResponse,
+  GetServicePassportParams,
   GetServicePassportResponse,
   GetSharedServiceHistoryParams,
   GetSharedServiceHistoryResponse,
@@ -11,6 +12,7 @@ import {
   GrantServiceHistoryAccessParams,
   GrantServiceHistoryAccessResponse,
   ListCustomersResponse,
+  ListServiceHistoryGrantsResponse,
   ListServicesResponse,
   ListVehiclesResponse,
   LookupVehicleQueryParams,
@@ -21,21 +23,20 @@ import {
 import { db } from "@workspace/db";
 import {
   customersTable,
-  locationsTable,
   organizationsTable,
   portableServiceRecordsTable,
   servicesTable,
-  usersTable,
   vehiclesTable,
   vehicleHistoryGrantsTable,
 } from "@workspace/db";
 import {
   currentGarageUser,
+  isDemoToolsEnabled,
   requireGarageRole,
   requireGarageUser,
 } from "../lib/auth";
 import { auditGarageAction } from "../lib/audit";
-import { PARTNER_ORG_ID } from "../lib/demo-seed";
+import { DEMO_ORG_ID, PARTNER_ORG_ID } from "../lib/demo-seed";
 import { numberValue } from "../lib/garage-data";
 import { asyncRoute, HttpError } from "../lib/http";
 import {
@@ -145,6 +146,9 @@ router.get(
   requireGarageRole("owner", "manager", "reception", "mechanic", "sales", "warehouse", "customer"),
   asyncRoute(async (_req, res) => {
     const user = currentGarageUser(res);
+    if (user.role === "customer" && !user.customerId) {
+      throw new HttpError(403, "Customer account is not linked to a vehicle.", "customer_unlinked");
+    }
     const vehicles = await db
       .select({ vehicle: vehiclesTable, customerName: customersTable.name })
       .from(vehiclesTable)
@@ -217,12 +221,16 @@ router.get(
   requireGarageUser,
   asyncRoute(async (req, res) => {
     const user = currentGarageUser(res);
+    const { vehicleId } = GetServicePassportParams.parse(req.params);
+    if (user.role === "customer" && !user.customerId) {
+      throw new HttpError(403, "Customer account is not linked to a vehicle.", "customer_unlinked");
+    }
     const [vehicle] = await db
       .select()
       .from(vehiclesTable)
       .where(
         and(
-          eq(vehiclesTable.id, req.params.vehicleId),
+          eq(vehiclesTable.id, vehicleId),
           eq(vehiclesTable.organizationId, user.organizationId),
           user.role === "customer" && user.customerId
             ? eq(vehiclesTable.customerId, user.customerId)
@@ -320,6 +328,55 @@ router.post(
       revokedAt: grant.revokedAt?.toISOString() ?? null,
     };
     res.status(201).json(GrantServiceHistoryAccessResponse.parse(result));
+  }),
+);
+
+router.get(
+  "/vehicles/:vehicleId/sharing",
+  requireGarageUser,
+  requireGarageRole("customer"),
+  asyncRoute(async (req, res) => {
+    const user = currentGarageUser(res);
+    const { vehicleId } = GetServicePassportParams.parse(req.params);
+    if (!user.customerId) {
+      throw new HttpError(403, "Customer account is not linked to a vehicle.", "customer_unlinked");
+    }
+    const [vehicle] = await db
+      .select({ id: vehiclesTable.id })
+      .from(vehiclesTable)
+      .where(and(
+        eq(vehiclesTable.id, vehicleId),
+        eq(vehiclesTable.organizationId, user.organizationId),
+        eq(vehiclesTable.customerId, user.customerId),
+      ))
+      .limit(1);
+    if (!vehicle) throw new HttpError(404, "Vehicle not found.", "not_found");
+    const grants = await db
+      .select({
+        grant: vehicleHistoryGrantsTable,
+        receivingGarage: organizationsTable.name,
+      })
+      .from(vehicleHistoryGrantsTable)
+      .innerJoin(
+        organizationsTable,
+        eq(vehicleHistoryGrantsTable.receivingOrganizationId, organizationsTable.id),
+      )
+      .where(and(
+        eq(vehicleHistoryGrantsTable.organizationId, user.organizationId),
+        eq(vehicleHistoryGrantsTable.vehicleId, vehicleId),
+        eq(vehicleHistoryGrantsTable.grantedByCustomerId, user.customerId),
+      ))
+      .orderBy(desc(vehicleHistoryGrantsTable.createdAt));
+    res.json(ListServiceHistoryGrantsResponse.parse(grants.map(({ grant, receivingGarage }) => ({
+      id: grant.id,
+      vehicleId: grant.vehicleId,
+      receivingOrganizationId: grant.receivingOrganizationId,
+      receivingGarage,
+      scope: grant.scope,
+      createdAt: grant.createdAt.toISOString(),
+      expiresAt: grant.expiresAt?.toISOString() ?? null,
+      revokedAt: grant.revokedAt?.toISOString() ?? null,
+    }))));
   }),
 );
 

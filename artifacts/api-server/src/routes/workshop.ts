@@ -125,7 +125,7 @@ function toInvoiceDto(
 router.get(
   "/dashboard",
   requireGarageUser,
-  requireGarageRole("owner", "manager", "reception"),
+  requireGarageRole("owner", "manager", "reception", "mechanic", "sales", "warehouse"),
   asyncRoute(async (_req, res) => {
     const user = currentGarageUser(res);
     const { start: todayStart, end: tomorrowStart } = addLocalDayRange();
@@ -605,15 +605,12 @@ router.patch(
           })));
         }
         await tx.update(estimatesTable).set({
-          status: "declined",
-          decision: "decline",
-          decisionTimestamp: new Date(),
-          customerMessage: "This estimate was replaced by an updated work order.",
+          status: "superseded",
+          customerMessage: "This estimate was replaced by an updated work order and needs new approval.",
         }).where(and(
           eq(estimatesTable.workOrderId, existing.id),
           eq(estimatesTable.organizationId, user.organizationId),
-          inArray(estimatesTable.status, ["draft", "sent"]),
-          isNull(estimatesTable.decisionTimestamp),
+          inArray(estimatesTable.status, ["draft", "sent", "approved"]),
         ));
       }
       await tx.update(workOrdersTable)

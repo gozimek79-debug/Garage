@@ -1,45 +1,30 @@
-# [Project name]
+# SST Garage Platform Demo
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An interactive Dutch workshop-management demo with a public garage site, customer portal, and tenant-scoped staff workspace.
 
-## Run & Operate
+## Run & verify
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — run the Express API.
+- `pnpm --filter @workspace/sst-garage-demo run dev` — run the Vite app.
+- `pnpm run typecheck` — check shared libraries and artifact packages.
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate Zod schemas and React Query hooks from `lib/api-spec/openapi.yaml`.
+- `pnpm --filter @workspace/db run push` — apply the Drizzle schema to the development PostgreSQL database.
 
-## Stack
+Required runtime configuration: `DATABASE_URL`, `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and `SESSION_SECRET`. The browser also needs `VITE_CLERK_PUBLISHABLE_KEY`; `VITE_CLERK_PROXY_URL` is optional and depends on the Clerk deployment.
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+`ENABLE_DEMO_TOOLS=true` only enables role switching and reset when `NODE_ENV=development`. Never enable it in a production deployment.
 
-## Where things live
+## Source of truth
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- API contract: `lib/api-spec/openapi.yaml`.
+- Database schema: `lib/db/src/schema/`.
+- API implementation and demo seed: `artifacts/api-server/src/`.
+- Web application: `artifacts/sst-garage-demo/src/`.
+- Operational and deployment notes: `README.md` and `docs/`.
 
-## Architecture decisions
+## Product constraints
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Every garage record is scoped to an organization and location.
+- Only the price-free technical passport is portable between garages; estimates, invoices, margins, and internal notes remain tenant-private.
+- RDW, checkout, notifications, and website widgets are demo adapters. They do not call live providers or move real money.
+- Production sign-ups are not automatically assigned to a garage. The demo-only role tools must stay disabled outside development.

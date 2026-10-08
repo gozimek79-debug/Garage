@@ -15,4 +15,5 @@ export const EstimateStatus = {
   approved: 'approved',
   declined: 'declined',
   contact_requested: 'contact_requested',
+  superseded: 'superseded',
 } as const;

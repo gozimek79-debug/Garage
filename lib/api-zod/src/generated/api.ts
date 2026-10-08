@@ -332,7 +332,7 @@ export const ReceiveBookingResponse = zod.object({
   "estimate": zod.union([zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -385,7 +385,7 @@ export const ListWorkOrdersResponseItem = zod.object({
   "estimate": zod.union([zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -443,7 +443,7 @@ export const GetWorkOrderResponse = zod.object({
   "estimate": zod.union([zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -525,7 +525,7 @@ export const UpdateWorkOrderResponse = zod.object({
   "estimate": zod.union([zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -554,7 +554,7 @@ export const CreateEstimateParams = zod.object({
 export const CreateEstimateResponse = zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -585,7 +585,7 @@ export const DecideEstimateBody = zod.object({
 export const DecideEstimateResponse = zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -640,7 +640,7 @@ export const CompleteWorkOrderResponse = zod.object({
   "estimate": zod.union([zod.object({
   "id": zod.string(),
   "workOrderId": zod.string(),
-  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested']),
+  "status": zod.enum(['draft', 'sent', 'approved', 'declined', 'contact_requested', 'superseded']),
   "decision": zod.union([zod.literal('approve'),zod.literal('decline'),zod.literal('contact'),zod.literal(null)]).nullable(),
   "lines": zod.array(zod.object({
   "description": zod.string(),
@@ -720,6 +720,26 @@ export const GetServicePassportResponseItem = zod.object({
   "verificationStatus": zod.enum(['verified', 'historical'])
 })
 export const GetServicePassportResponse = zod.array(GetServicePassportResponseItem)
+
+
+/**
+ * @summary List the customer-owned access grants for a vehicle
+ */
+export const ListServiceHistoryGrantsParams = zod.object({
+  "vehicleId": zod.coerce.string()
+})
+
+export const ListServiceHistoryGrantsResponseItem = zod.object({
+  "id": zod.string(),
+  "vehicleId": zod.string(),
+  "receivingOrganizationId": zod.string(),
+  "receivingGarage": zod.string(),
+  "scope": zod.enum(['one_time', '30_days', 'until_revoked']),
+  "createdAt": zod.string(),
+  "expiresAt": zod.string().nullable(),
+  "revokedAt": zod.string().nullable()
+})
+export const ListServiceHistoryGrantsResponse = zod.array(ListServiceHistoryGrantsResponseItem)
 
 
 /**
