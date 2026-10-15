@@ -9,7 +9,9 @@
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "seed:demo": "pnpm --filter @workspace/scripts exec tsx ../../artifacts/api-server/src/lib/seed-cli.ts",
+    "provision:demo-owner": "pnpm --filter @workspace/scripts exec tsx ../../artifacts/api-server/src/lib/provision-demo-owner.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

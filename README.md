@@ -36,12 +36,14 @@ See `.env.example` for variable names. Do not commit populated environment files
 The root `vercel.json` builds the static Vite app and routes `/api/*` to an Express catch-all function. Before deploying:
 
 1. Connect the repository at its workspace root.
-2. Configure `DATABASE_URL`, `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and `SESSION_SECRET` as Vercel environment variables.
+2. Configure `DATABASE_URL`, `CLERK_PUBLISHABLE_KEY`, and `CLERK_SECRET_KEY` as Vercel environment variables.
 3. Configure `VITE_CLERK_PUBLISHABLE_KEY` and, if used by the Clerk instance, `VITE_CLERK_PROXY_URL` for the build.
 4. Use a PostgreSQL service reachable from Vercel and apply the schema through the project’s migration/push process.
 5. Provision garage memberships before inviting production users. Keep `ENABLE_DEMO_TOOLS` unset or false.
 
 The Vercel configuration is a deployment entry point, not a completed production launch. No Vercel project, external database, custom domain, or production Clerk membership provisioning has been configured from this workspace.
+
+See [the Vercel runbook](docs/VERCEL.md) for exact build settings, database initialization, owner provisioning, and smoke checks.
 
 ## Demo boundaries
 
