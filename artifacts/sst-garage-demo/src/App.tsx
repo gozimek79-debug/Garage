@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -452,6 +453,7 @@ function ClerkQueryClientCacheInvalidator(){
 }
 
 function AppRoutes(){
+ const { t, i18n } = useTranslation();
  const [,setLocation]=useLocation();
  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{signIn:{start:{title:'Welkom terug',subtitle:'Log in op uw SST Garage account'}},signUp:{start:{title:'Maak uw account aan',subtitle:'Uw garagezaken overzichtelijk bij elkaar'}}}} routerPush={to=>setLocation(stripBase(to))} routerReplace={to=>setLocation(stripBase(to),{replace:true})}>
   <QueryClientProvider client={queryClient}><ClerkQueryClientCacheInvalidator/><div className="app-noise"><Switch>
