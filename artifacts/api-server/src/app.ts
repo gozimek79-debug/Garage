@@ -33,12 +33,17 @@ app.use(
     },
   }),
 );
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+const useClerkProxy = process.env.CLERK_PROXY_ENABLED === "true" ||
+  (process.env.REPL_ID !== undefined && process.env.VERCEL !== "1");
+if (useClerkProxy) app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   clerkMiddleware((req) => {
+    // Standard Clerk instances on Vercel connect directly to Clerk.
+    // Keep the Replit proxy opt-in and use the same mode in the browser.
+    if (!useClerkProxy) return {};
     const host = getClerkProxyHost(req) ?? "";
     const forwardedProto = req.headers["x-forwarded-proto"];
     const protocol = Array.isArray(forwardedProto)
@@ -55,6 +60,9 @@ app.use(
 );
 
 app.use("/api", router);
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "not_found", message: "API route not found." });
+});
 app.use(apiErrorHandler);
 
 export default app;
